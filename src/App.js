@@ -13,13 +13,17 @@ const { TextArea } = Input;
 class App extends React.Component {
   constructor(props) {
     super(props);
+
     this.state = {
     };
   }
 
 
   render() {
-
+      console.log("看看数据===>",this.props)
+      const {
+          instances,
+      } = this.props;
 
     return (
         <Layout style={{ height: '100vh' }}>

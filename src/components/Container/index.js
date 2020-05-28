@@ -5,11 +5,12 @@
 import React from 'react';
 import { DropTarget } from 'react-dnd';
 
-// import store from '../../store';
-// import {
-//   ADD_COMPONENT,
-//   REMOVE_COMPONENT,
-// } from '../../common/actions';
+import store from '../../store';
+import Field from '../Field';
+import {
+  ADD_COMPONENT,
+  REMOVE_COMPONENT,
+} from '../../common/actions';
 // import Field from '../Field';
 import addComponent from '../../common/add-component';
 import { ItemTypes } from '../../common/constants';
@@ -45,14 +46,12 @@ const chessSquareTarget = {
         moved: true,
       };
     }
+
     const instance = addComponent(item.label);
-    console.log("instance====>",instance)
-    // store.dispatch({
-    //   type: ADD_COMPONENT,
-    //   payload: instance,
-    // });
-    // You can do something with it
-    // ChessActions.movePiece(item.fromPosition, props.position);
+    store.dispatch({
+      type: ADD_COMPONENT,
+      payload: instance,
+    });
 
     // You can also do nothing and return a drop result,
     // which will be available as monitor.getDropResult()
@@ -86,9 +85,29 @@ class Container extends React.Component {
     };
   }
 
+  /**
+   * 渲染实例组件
+   */
+  renderComponent = () => {
+    const { instances = [] } = this.props;
+    return instances.map((instance, index) => {
+      return (
+          <Field
+              key={instance.uuid}
+              index={index}
+              item={instance}
+              // 用在获取嵌套组件代码的时候，只当 root === true 时才获取代码
+              root
+              removeComponent={this.removeComponent}
+          />
+      );
+    });
+  };
+
   render() {
     const { connectDropTarget } = this.props;
-    return connectDropTarget(<div style={{ paddingBottom: 80, minHeight: 300 ,background: "red"}}></div>);
+    const fields = this.renderComponent();
+    return connectDropTarget(<div style={{ paddingBottom: 80, minHeight: 300 }}>{fields}</div>);
   }
 }
 

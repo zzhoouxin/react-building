@@ -1,0 +1,9 @@
+export const ADD_COMPONENT = 'ADD_COMPONENT'; //添加模块
+export const UPDATE_COMPONENT = 'UPDATE_COMPONENT';
+export const REMOVE_COMPONENT = 'REMOVE_COMPONENT';//移除模块
+
+export const SORT = 'SORT';
+export const APPEND_COMPONENT = 'APPEND_COMPONENT';
+
+export const EMPTY_PAGE = 'EMPTY_PAGE';
+export const REPLACE_INSTANCES = 'REPLACE_INSTANCES';
