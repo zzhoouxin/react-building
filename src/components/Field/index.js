@@ -1,9 +1,14 @@
 import React from 'react';
 import {Form} from 'antd';
+import {findDOMNode} from 'react-dom';
 import {DragSource, DropTarget} from 'react-dnd';
 import {ItemTypes} from '../../common/constants';
 import store from '../../store';
-
+import {
+    UPDATE_COMPONENT,
+    SORT,
+    APPEND_COMPONENT,
+} from '../../common/actions';
 const {Item: FormItem} = Form;
 
 
@@ -63,7 +68,41 @@ class Field extends React.Component {
 const fieldTarget = {
     //目标拖拽出发
     hover(props, monitor, component) {
-        console.log("出发这个嘛")
+
+        const dragIndex = monitor.getItem().index;
+        const hoverIndex = props.index;
+        console.log(dragIndex, hoverIndex);
+        // Don't replace items with themselves
+        if (dragIndex === undefined || hoverIndex === undefined) {
+            return;
+        }
+        if (dragIndex === hoverIndex) {
+            return;
+        }
+        // Determine rectangle on screen
+        const hoverBoundingRect = findDOMNode(component).getBoundingClientRect();
+        // Get vertical middle
+        const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+        // Determine mouse position
+        const clientOffset = monitor.getClientOffset();
+        // Get pixels to the top
+        const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+            return;
+        }
+        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+            return;
+        }
+        // Time to actually perform the action
+        // props.moveCard(dragIndex, hoverIndex);
+        store.dispatch({
+            type: SORT,
+            payload: {
+                dragIndex,
+                hoverIndex,
+            },
+        });
+        monitor.getItem().index = hoverIndex;
     },
     //结束后出发的东西
     drop(props, monitor, component) {

@@ -16,6 +16,17 @@ function reducer(state = initialState, action) {
                 ...state,
                 instances: update(instances, {$push: [obj]}),
             };
+        case t.SORT:
+            const { dragIndex, hoverIndex } = action.payload;
+            const dragCard = instances[dragIndex];
+            debugger
+            const res = update(state, {
+                instances: {
+                    $splice: [[dragIndex, 1], [hoverIndex, 0, dragCard]],
+                },
+            });
+            debugger
+            return res;
         default:
             return state;
     }
