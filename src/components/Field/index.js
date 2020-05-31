@@ -1,33 +1,145 @@
+/**
+ * @file Field - 即一个组件，由自身维护一个模态框
+ * @author wuya
+ */
 import React from 'react';
-import {Form} from 'antd';
-import {findDOMNode} from 'react-dom';
-import {DragSource, DropTarget} from 'react-dnd';
-import {ItemTypes} from '../../common/constants';
+import { findDOMNode } from 'react-dom';
+import PropTypes from 'prop-types';
+import { Form, Modal, Icon, Select, Row, Col } from 'antd';
+import { DropTarget, DragSource } from 'react-dnd';
+
 import store from '../../store';
+import addComponent from '../../common/add-component';
 import {
     UPDATE_COMPONENT,
     SORT,
     APPEND_COMPONENT,
 } from '../../common/actions';
-const {Item: FormItem} = Form;
+import { ItemTypes } from '../../common/constants';
 
+const { Item: FormItem } = Form;
+const { Option } = Select;
 
 class Field extends React.Component {
+    constructor(props) {
+        super(props);
 
+        this.state = {
+            editorModalVisible: false,
+            hasDropped: false,
+            hasDroppedOnChild: false,
+        };
+    }
+    /**
+     * 从表单中获取值，更新 instance
+     * @param {Object} values - 表单值
+     */
+    updateProps = values => {
+        const { formData } = values;
+        const { item } = this.props;
+        store.dispatch({
+            type: UPDATE_COMPONENT,
+            payload: {
+                item,
+                values: formData,
+            },
+        });
+        this.hideEditorModal();
+    };
+    /**
+     * 移除组件
+     */
+    removeComponent = () => {
+        const { item } = this.props;
+        console.log(item);
+        this.props.removeComponent(item.uuid);
+    };
 
+    showEditorModal = () => {
+        this.setState({
+            editorModalVisible: true,
+        });
+    };
+    hideEditorModal = () => {
+        this.setState({
+            editorModalVisible: false,
+        });
+    };
     render() {
-
-        const { item, form, connectDragSource,connectDropTarget, connectDragPreview ,isDragging} = this.props;
-        const opacity = isDragging ? 0 : 1;//透明度
+        const { editorModalVisible } = this.state;
         const {
+            form,
+            item,
+            connectDragSource,
+            connectDropTarget,
+            greedy,
+            isOver,
+            isOverCurrent,
+            isDragging,
+            connectDragPreview,
+        } = this.props;
+
+        const { getFieldDecorator } = form;
+        const {
+            label: Tag,
             Component,
             props,
             children = [],
             field,
             mergedProps,
         } = item;
-        const {getFieldDecorator} = form;
-        let instanceCom = <Component/>;
+        console.log("props====>",props)
+        // 处理 children
+        let childrenComponent = null;
+        if (children) {
+            childrenComponent = children.map((child, i) => {
+                return (
+                    <WrappedField
+                        {...this.props}
+                        key={child.uuid}
+                        item={child}
+                    />
+                );
+            });
+        }
+
+        // 处理 props
+        let newProps = props;
+        if (mergedProps) {
+            newProps = Object.assign(
+                {},
+                { ...props },
+                {
+                    ...mergedProps,
+                    form: this.props.form,
+                },
+            );
+        }
+
+        let instanceCom = <Component {...newProps} />;
+        console.log("children===>",children)
+        if (children && children.length) {
+            instanceCom = <Component {...newProps}>{childrenComponent}</Component>;
+        }
+
+        const operators = (
+            <div>
+                <div className="edit__btn" onClick={this.showEditorModal}>
+                    <Icon type="edit" />
+                </div>
+                <div className="edit__btn" onClick={this.removeComponent}>
+                    <Icon type="delete" />
+                </div>
+
+            </div>
+        );
+        // 用以拖拽时标志 container
+        let backgroundColor = '#fff';
+        if (item.layout && (isOverCurrent || (isOver && greedy))) {
+            backgroundColor = 'darkgreen'
+        }
+        const opacity = isDragging ? 0 : 1;
+
         if (field) {
             const {
                 id,
@@ -46,29 +158,46 @@ class Field extends React.Component {
                 </FormItem>
             );
         }
+
         let content = (
-            <div style={{opacity}}>
-                {connectDragSource(
-                    <div>
-                        {instanceCom}
-                    </div>)
-                }
+            <div className="field" style={{ background: backgroundColor, opacity }}>
+                <div className="edit__wrapper">
+                    {operators}
+                    {instanceCom}
+                </div>
             </div>
         );
         return connectDragPreview(connectDropTarget(content));
-
     }
 }
 
-
+Field.PropType = {
+    item: PropTypes.object,
+    isDragging: PropTypes.bool.isRequired,
+    connectDragSource: PropTypes.func.isRequired,
+    connectDropTarget: PropTypes.func.isRequired,
+};
+const fieldSource = {
+    beginDrag(props) {
+        return {
+            id: props.id,
+            index: props.index,
+            item: props.item,
+        };
+    },
+};
 /**
- * 目标拖拽时候出发的事件 -- 有拖动中和拖动结束
- * @type {{drop(*, *, *): (undefined), hover(*, *, *=): (undefined)}}
+ * Implements the drag source contract.
  */
 const fieldTarget = {
-    //目标拖拽出发
+    /**
+     *
+     * @param {*} props
+     * @param {*} monitor
+     * @param {*} component
+     */
     hover(props, monitor, component) {
-
+        // 如果是从 Sidebar 拖到 Container，dataIndex === undefined
         const dragIndex = monitor.getItem().index;
         const hoverIndex = props.index;
         console.log(dragIndex, hoverIndex);
@@ -104,28 +233,32 @@ const fieldTarget = {
         });
         monitor.getItem().index = hoverIndex;
     },
-    //结束后出发的东西
     drop(props, monitor, component) {
-        console.log("2222222")
-
+        const hasDroppedOnChild = monitor.didDrop();
+        if (hasDroppedOnChild) {
+            return;
+        }
+        // dropTarget
+        const { item: source } = monitor.getItem();
+        const target = props.item;
+        if ((source.uuid === target.uuid) || !target.layout) {
+            return;
+        }
+        const instance = source.uuid === undefined ? addComponent(source.label) : source;
+        store.dispatch({
+            type: APPEND_COMPONENT,
+            payload: {
+                parent: target.uuid,
+                item: instance,
+                // 是否要移除原先的
+                remove: source.uuid !== undefined,
+            },
+        });
     },
 };
-/**
- * 拖拽地方--可以会去到props值  这个就是渲染的每个item props 就是Component各个属性
- * @type {{beginDrag(*): {item: *, index: *, id: *}}}
- */
-const fieldSource = {
-    beginDrag(props) {
-        return {
-            id: props.id,
-            index: props.index,
-            item: props.item,
-        };
-    },
-};
 
 /**
- * 注册一些方法到对应的组件上--比如拖拽包括的属性
+ * Specifies the props to inject into your component.
  */
 function collect(connect, monitor) {
     return {
@@ -139,11 +272,12 @@ function dropConnect(connect, monitor) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),
-        isOverCurrent: monitor.isOver({shallow: true}),
+        isOverCurrent: monitor.isOver({ shallow: true }),
     };
 }
 
+// 在 Field 内渲染 Field 没有 form 属性
 const WrappedField = DropTarget(ItemTypes.FIELD, fieldTarget, dropConnect)(
     DragSource(ItemTypes.FIELD, fieldSource, collect)(Form.create()(Field)),
 );
-export default WrappedField
+export default WrappedField;

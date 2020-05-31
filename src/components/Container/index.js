@@ -28,6 +28,7 @@ const chessSquareTarget = {
     return true;
   },
   drop(props, monitor, component) {
+    console.log("进入这边应该")
     if (monitor.didDrop()) {
       // If you want, you can check whether some nested
       // target already handled drop

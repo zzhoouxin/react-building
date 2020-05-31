@@ -11,8 +11,6 @@ import Item from './DragSource';
 class Source extends Component {
 
     render() {
-        debugger
-        console.log(lib.optimize)
         const items = Object.keys(lib.optimize).map((key, i) => {
             const item = lib.optimize[key].default();
             return (
