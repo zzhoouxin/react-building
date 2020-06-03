@@ -16,6 +16,7 @@ import {
     APPEND_COMPONENT,
 } from '../../common/actions';
 import { ItemTypes } from '../../common/constants';
+import ComponentEditor from '../Editor';
 
 const { Item: FormItem } = Form;
 const { Option } = Select;
@@ -117,28 +118,46 @@ class Field extends React.Component {
         }
 
         let instanceCom = <Component {...newProps} />;
-        console.log("children===>",children)
+
         if (children && children.length) {
             instanceCom = <Component {...newProps}>{childrenComponent}</Component>;
         }
 
-        const operators = (
-            <div>
-                <div className="edit__btn" onClick={this.showEditorModal}>
-                    <Icon type="edit" />
-                </div>
-                <div className="edit__btn" onClick={this.removeComponent}>
-                    <Icon type="delete" />
-                </div>
-
-            </div>
+        //编辑组件
+        const modal = (
+            <Modal
+                title="编辑组件"
+                visible={editorModalVisible}
+                onOk={this.hideEditorModal}
+                onCancel={this.hideEditorModal}
+                footer={null}
+            >
+                <ComponentEditor submit={this.updateProps} instance={item} />
+            </Modal>
         );
+
+
         // 用以拖拽时标志 container
         let backgroundColor = '#fff';
         if (item.layout && (isOverCurrent || (isOver && greedy))) {
             backgroundColor = 'darkgreen'
         }
         const opacity = isDragging ? 0 : 1;
+        const operators = (
+            <div>
+                <div className="edit__btn" onClick={this.showEditorModal}>
+                    <Icon type="edit" />
+                </div>
+                {/*<div className="edit__btn" onClick={this.removeComponent}>*/}
+                {/*    <Icon type="delete" />*/}
+                {/*</div>*/}
+                {/*{connectDragSource(*/}
+                {/*    <div className="edit__btn">*/}
+                {/*        <Icon type="pushpin" />*/}
+                {/*    </div>*/}
+                {/*)}*/}
+            </div>
+        );
 
         if (field) {
             const {
@@ -165,6 +184,7 @@ class Field extends React.Component {
                     {operators}
                     {instanceCom}
                 </div>
+                {modal}
             </div>
         );
         return connectDragPreview(connectDropTarget(content));
